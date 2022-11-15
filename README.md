@@ -19,7 +19,7 @@ This plugin is designed to shake tree (remove code unused) mainly with the lib t
 -   Works with multiple files;
 -   Works with serverless;
 
-### What we support in tsyringe<span id="tsyringe">HelloWorld</span>
+### What we support in <span id="tsyringe">tsyringe</span>
 
 **Decorators:**
 
