@@ -44,12 +44,12 @@ npm install esbuild-shake-tsyringe-tree --save-dev
 -   Add the plugin to the `plugins` array in your Serverless `esbuild.config.js`:
 
 ```javascript
-const esbuildShakeTsringeTree = require('esbuild-shake-tsyringe-tree');
+const esbuildShakeTsyringeTree = require('esbuild-shake-tsyringe-tree');
 build({
     /* ... */
     format: 'esm',
     outputFileExtension: '.mjs',
-    plugins: [esbuildShakeTsringeTree],
+    plugins: [esbuildShakeTsyringeTree],
 });
 ```
 

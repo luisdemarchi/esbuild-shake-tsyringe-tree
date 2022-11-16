@@ -49,10 +49,13 @@ const UserController = class {
     }
     createUser(data) {
         const result = this.createUserUseCase.execute();
-        if (Util.invoke.testtest(data)) {
+        if (Util.invoke.testtest(data) && this.usedFunction()) {
             return true;
         }
         return result;
+    }
+    usedFunction() {
+        return true;
     }
     unusedFunction2() {
         this.refUnused.execute();

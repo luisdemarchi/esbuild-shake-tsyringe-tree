@@ -1,6 +1,6 @@
 {
   "name": "esbuild-shake-tsyringe-tree",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "This plugin is designed to shake tree (remove code unused) mainly with the lib tsyringe. Attention: Currently only works with ES Module (.mjs)",
   "engines": {
     "node": ">=14.x"

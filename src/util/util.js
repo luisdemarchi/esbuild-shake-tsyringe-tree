@@ -3,6 +3,19 @@
 const jsEmitter = require('../ast/jsemitter');
 
 class Util {
+    static getAllClasses(node) {
+        const classes = Util.filterNodesWithType('ClassDeclaration', node);
+        const classesDeclarator = Util.filterNodesWithType(
+            'ClassExpression',
+            node
+        );
+        classesDeclarator.forEach((item) => {
+            item.node.temporaryId = item.declarationRoot.declarations[0].id;
+            classes.push(item);
+        });
+
+        return classes;
+    }
     static codeWithNewImport(node, allLocalNames) {
         let code = jsEmitter.unmapped(node);
         for (const [key, value] of Object.entries(allLocalNames)) {
