@@ -236,18 +236,7 @@ class VariableDeclaration {
         const nodes = [].concat(this.others, this.expressionStatement.others);
         const calls = this.catalogObjectCall(objects, nodes);
 
-        const classes = Util.filterNodesWithType(
-            'ClassDeclaration',
-            this.others
-        );
-        const classesDeclarator = Util.filterNodesWithType(
-            'ClassExpression',
-            this.others
-        );
-        classesDeclarator.forEach((item) => {
-            item.node.temporaryId = item.declarationRoot.declarations[0].id;
-            classes.push(item);
-        });
+        const classes = Util.getAllClasses(this.others);
 
         let removed = false;
 
@@ -315,34 +304,63 @@ class VariableDeclaration {
 
     catalogObjectCall(objects, body) {
         const calls = [];
-        const call = Util.filterNodesWithType('MemberExpression', body);
-        call.forEach((item) => {
-            const { node } = item;
-            this._catalogObjectCallWithProperty(node, calls, objects);
-            if (node.object.type === 'MemberExpression') {
-                this._catalogObjectCallWithProperty(
-                    node.object,
-                    calls,
-                    objects
-                );
-            }
-        });
+        let classes = Util.getAllClasses(body);
+
+        const separateFunctions = Util.filterNodesWithType(
+            'ArrowFunctionExpression',
+            body
+        );
+        classes = classes.concat(separateFunctions);
+
+        for (const { node: nodeClass } of classes) {
+            const activeClassName =
+                nodeClass.id?.name || nodeClass.temporaryId?.name;
+            const call = Util.filterNodesWithType(
+                'MemberExpression',
+                nodeClass
+            );
+            call.forEach((item) => {
+                const { node } = item;
+                this._catalogObjectCallWithProperty(node, calls, objects);
+                if (
+                    node.object.type === 'ThisExpression' &&
+                    node.property?.name &&
+                    activeClassName
+                ) {
+                    this._catalogObjectToAllFunctions(
+                        calls,
+                        [activeClassName],
+                        node.property.name
+                    );
+                }
+            });
+        }
+
         return calls;
     }
 
+    _catalogObjectToAllFunctions(calls, classes, property) {
+        classes.forEach((className) => {
+            if (calls[className]) {
+                if (!calls[className].includes(property)) {
+                    calls[className].push(property);
+                }
+            } else {
+                calls[className] = [property];
+            }
+        });
+    }
+
     _catalogObjectCallWithProperty(node, calls, objects) {
+        if (node.object.type === 'MemberExpression') {
+            this._catalogObjectCallWithProperty(node.object, calls, objects);
+        }
         const variable = node.object?.name || node.object.property?.name;
         const property = node.property?.name;
         if (variable) {
             const classes = objects[variable];
             if (classes) {
-                classes.forEach((className) => {
-                    if (calls[className]) {
-                        calls[className].push(property);
-                    } else {
-                        calls[className] = [property];
-                    }
-                });
+                this._catalogObjectToAllFunctions(calls, classes, property);
             }
         }
     }
