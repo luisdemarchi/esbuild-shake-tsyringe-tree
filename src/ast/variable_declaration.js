@@ -232,6 +232,10 @@ class VariableDeclaration {
     removeUnusedFunctions() {
         let objects = this.catalogNewObject(this.others);
         objects = this.catalogObjectReference(this.others, objects);
+        objects = this.catalogObjectReferenceWithSuperClass(
+            this.others,
+            objects
+        );
 
         const nodes = [].concat(this.others, this.expressionStatement.others);
         const calls = this.catalogObjectCall(objects, nodes);
@@ -256,7 +260,8 @@ class VariableDeclaration {
                                 this.removeUnusedNewObjectsInConstructor(
                                     method,
                                     objects,
-                                    calls
+                                    calls,
+                                    node
                                 );
                             if (result) {
                                 removed = true;
@@ -275,7 +280,7 @@ class VariableDeclaration {
         }
     }
 
-    removeUnusedNewObjectsInConstructor(method, objects, calls) {
+    removeUnusedNewObjectsInConstructor(method, objects, calls, classNode) {
         let removed = false;
         let funcIndex = 0;
         while (funcIndex < method.value.body.body.length) {
@@ -284,15 +289,36 @@ class VariableDeclaration {
                 method.value.body.body[funcIndex]
             );
 
-            const names = objects[func[0].node.property?.name];
-            if (names) {
-                for (const name of names) {
-                    if (!calls[name]) {
-                        method.value.body.body.splice(funcIndex, 1);
+            if (func.length > 0) {
+                const { node } = func[0];
+                const propertyName = node.property?.name;
 
-                        funcIndex -= 1;
+                if (node.object.type === 'ThisExpression') {
+                    // CallExpression
+                    const calls = Util.filterNodesWithType(
+                        'CallExpression',
+                        classNode
+                    );
+                    if (calls.length === 0) {
+                        method.value.body.body.splice(funcIndex, 1);
                         removed = true;
+                        continue;
                     }
+                }
+                const names = objects[propertyName];
+                if (names) {
+                    for (const name of names) {
+                        if (!calls[name]) {
+                            method.value.body.body.splice(funcIndex, 1);
+
+                            funcIndex -= 1;
+                            removed = true;
+                        }
+                    }
+                } else {
+                    method.value.body.body.splice(funcIndex, 1);
+                    removed = true;
+                    continue;
                 }
             }
 
@@ -410,6 +436,25 @@ class VariableDeclaration {
         return objects;
     }
 
+    catalogObjectReferenceWithSuperClass(body, objects) {
+        const classes = Util.getAllClasses(body);
+
+        for (const { node } of classes) {
+            if (node.superClass?.name) {
+                const className = node.id?.name || node.temporaryId?.name;
+                const superClassName = node.superClass.name;
+                Object.keys(objects).forEach(function (key) {
+                    var list = objects[key];
+                    if (list.includes(className)) {
+                        list.push(superClassName);
+                    }
+                });
+            }
+        }
+
+        return objects;
+    }
+
     catalogObjectReference(body, objects) {
         let call = Util.filterNodesWithType('VariableDeclarator', body);
         call = call.filter((item) => item.node.init?.type === 'Identifier');
@@ -419,6 +464,21 @@ class VariableDeclaration {
                 objects[item.node.id.name] = reference;
             }
         });
+
+        const assignments = Util.filterNodesWithType(
+            'AssignmentExpression',
+            body
+        );
+        for (const { node } of assignments) {
+            const { object, property } = Util.findObjectNode(node.left);
+            if (node.right.name) {
+                const name = object.name || property.name;
+                const reference = objects[node.right.name];
+                if (reference) {
+                    objects[name] = reference;
+                }
+            }
+        }
 
         return objects;
     }

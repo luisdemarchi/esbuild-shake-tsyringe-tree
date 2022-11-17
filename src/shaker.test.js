@@ -43,4 +43,9 @@ describe('tree shake test', () => {
         const filesPath = 'removeUnusedFunctions';
         await core(filesPath);
     });
+
+    it('should remove unused functions singleton', async () => {
+        const filesPath = 'removeUnusedSingleton';
+        await core(filesPath);
+    });
 });
