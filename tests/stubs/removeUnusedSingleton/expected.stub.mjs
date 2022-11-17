@@ -1,5 +1,7 @@
 const SuperClassPrimary = class SuperClassB {
-    constructor(name) {}
+    constructor(name) {
+        this.name = name;
+    }
     check() {
         return this.name;
     }
@@ -11,6 +13,7 @@ const SuperClassB = class extends SuperClassPrimary {
 };
 const UsedClassB = class extends SuperClassB {
     constructor() {
+        const tableName = process.env['DYNAMODB_TABLENAME'];
         super(tableName);
     }
     execute() {

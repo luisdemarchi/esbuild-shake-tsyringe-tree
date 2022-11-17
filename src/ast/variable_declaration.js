@@ -283,7 +283,7 @@ class VariableDeclaration {
     removeUnusedNewObjectsInConstructor(method, objects, calls, classNode) {
         let removed = false;
         let funcIndex = 0;
-        while (funcIndex < method.value.body.body.length) {
+        func: while (funcIndex < method.value.body.body.length) {
             const func = Util.filterNodesWithType(
                 'MemberExpression',
                 method.value.body.body[funcIndex]
@@ -296,29 +296,34 @@ class VariableDeclaration {
                 if (node.object.type === 'ThisExpression') {
                     // CallExpression
                     const calls = Util.filterNodesWithType(
-                        'CallExpression',
+                        'MemberExpression',
                         classNode
-                    );
-                    if (calls.length === 0) {
+                    ).filter((item) => item.node !== node);
+                    let callUnused = true;
+                    if (calls.length > 0) {
+                        for (const call of calls) {
+                            const { property } = Util.findObjectNode(call);
+                            if (property?.name === propertyName) {
+                                callUnused = false;
+                            }
+                        }
+                    }
+                    if (callUnused && objects[propertyName]) {
                         method.value.body.body.splice(funcIndex, 1);
                         removed = true;
-                        continue;
+                        continue func;
                     }
                 }
                 const names = objects[propertyName];
                 if (names) {
                     for (const name of names) {
-                        if (!calls[name]) {
+                        if (!Object.keys(calls).includes(name)) {
                             method.value.body.body.splice(funcIndex, 1);
 
                             funcIndex -= 1;
                             removed = true;
                         }
                     }
-                } else {
-                    method.value.body.body.splice(funcIndex, 1);
-                    removed = true;
-                    continue;
                 }
             }
 
